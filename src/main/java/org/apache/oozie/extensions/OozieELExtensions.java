@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.ivory.oozie;
+package org.apache.oozie.extensions;
 
 import java.util.Calendar;
 import java.util.Date;

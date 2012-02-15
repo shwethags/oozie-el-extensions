@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.ivory.oozie;
+package org.apache.oozie.extensions;
 
 import static org.testng.AssertJUnit.assertEquals;
 
