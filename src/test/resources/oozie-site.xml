@@ -69,4 +69,26 @@
             include all the built in ones.
         </description>
     </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-job-submit-data</name>
+        <value>
+            ivory:dataIn=org.apache.oozie.extensions.OozieELExtensions#ph1_dataIn_echo
+        </value>
+        <description>
+            EL constant declarations, separated by commas, format is [PREFIX:]NAME=CLASS#CONSTANT.
+            This property is a convenience property to add extensions to the built in executors without having to
+            include all the built in ones.
+        </description>
+    </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-action-start</name>
+        <value>
+            ivory:dataIn=org.apache.oozie.extensions.OozieELExtensions#ph3_dataIn
+        </value>
+        <description>
+            EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
+            This property is a convenience property to add extensions to the built in executors without having to
+            include all the built in ones.
+        </description>
+    </property>
 </configuration>

@@ -56,6 +56,15 @@ public class TestOozieELExtensions {
     }
 
     @Test
+    public void testDataIn() throws Exception {
+        ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("coord-action-start"); 
+        String uris = "hdfs://localhost:8020/clicks/2010/01/01/00" + CoordELFunctions.INSTANCE_SEPARATOR + "hdfs://localhost:8020/clicks/2010/01/01/01";
+        eval.setVariable(".datain.clicks", uris );
+        String expuris = "hdfs://localhost:8020/clicks/2010/01/01/00/*/US" + CoordELFunctions.INSTANCE_SEPARATOR + "hdfs://localhost:8020/clicks/2010/01/01/01/*/US";
+        assertEquals(expuris, CoordELFunctions.evalAndWrap(eval, "${ivory:dataIn('clicks', '*/US')}"));
+    }
+    
+    @Test
     public void testCurrentMonth() throws Exception {
         init();
 

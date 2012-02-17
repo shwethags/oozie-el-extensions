@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.oozie.coord.CoordELFunctions;
 import org.apache.oozie.coord.SyncCoordAction;
 import org.apache.oozie.coord.SyncCoordDataset;
@@ -39,6 +40,40 @@ public class OozieELExtensions {
     private static final String PREFIX = "ivory:";
     private static String COORD_CURRENT = "coord:current";
 
+    public static String ph1_dataIn_echo(String dataInName, String part) {
+        ELEvaluator eval = ELEvaluator.getCurrent();
+        String val = (String) eval.getVariable("oozie.dataname." + dataInName);
+        if (val == null || val.equals("data-in") == false) {
+            XLog.getLog(CoordELFunctions.class).error("data_in_name " + dataInName + " is not valid");
+            throw new RuntimeException("data_in_name " + dataInName + " is not valid");
+        }
+        return PREFIX + "dataIn('" + dataInName + "', '" + part + "')";
+    }
+
+
+    public static String ph3_dataIn(String dataInName, String part) {
+        ELEvaluator eval = ELEvaluator.getCurrent();
+        String uristr = (String) eval.getVariable(".datain." + dataInName);
+        Boolean unresolved = (Boolean) eval.getVariable(".datain." + dataInName + ".unresolved");
+        if (unresolved != null && unresolved.booleanValue() == true) {
+            throw new RuntimeException("There are unresolved instances in " + uristr);
+        }
+        
+        if(StringUtils.isNotEmpty(uristr) && StringUtils.isNotEmpty(part)) {
+            String[] uris = uristr.split(",");
+            StringBuilder mappedUris = new StringBuilder();
+            for(String uri:uris) {
+                if(uri.trim().length() == 0)
+                    continue;
+                if(mappedUris.length() > 0)
+                    mappedUris.append(",");
+                mappedUris.append(uri).append("/").append(part);
+            }
+             return mappedUris.toString();
+        }
+        return uristr;
+    }
+    
     public static String ph1_now_echo(int hr, int min) {
         ELEvaluator eval = ELEvaluator.getCurrent();
         eval.setVariable(".wrap", "true");
