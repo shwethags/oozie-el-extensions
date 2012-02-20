@@ -37,7 +37,7 @@ public class OozieELExtensions {
         NONE, DAY, MONTH, QUARTER, YEAR;
     }
 
-    private static final String PREFIX = "ivory:";
+    private static final String PREFIX = "elext:";
     private static String COORD_CURRENT = "coord:current";
 
     public static String ph1_dataIn_echo(String dataInName, String part) {
