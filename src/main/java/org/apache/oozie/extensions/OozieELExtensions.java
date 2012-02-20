@@ -19,15 +19,10 @@
 package org.apache.oozie.extensions;
 
 import java.util.Calendar;
-import java.util.Date;
-import java.util.TimeZone;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.oozie.command.coord.CoordCommandUtils;
 import org.apache.oozie.coord.CoordELFunctions;
-import org.apache.oozie.coord.SyncCoordAction;
-import org.apache.oozie.coord.SyncCoordDataset;
-import org.apache.oozie.coord.TimeUnit;
-import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.XLog;
 
@@ -149,7 +144,7 @@ public class OozieELExtensions {
             return curExpr;
         }
 
-        int inst = parseOneArg(curExpr);
+        int inst = CoordCommandUtils.parseOneArg(curExpr);
         return CoordELFunctions.ph2_coord_current(inst);
     }
 
@@ -202,7 +197,7 @@ public class OozieELExtensions {
      */
     //TODO handle the case where action_Creation_time or the n-th instance is earlier than the Initial_Instance of dataset.
     private static String mapToCurrentInstance(TruncateBoundary trunc, int yr, int month, int day, int hr, int min) throws Exception {
-        Calendar nominalInstanceCal = getEffectiveNominalTime();
+        Calendar nominalInstanceCal = CoordELFunctions.getEffectiveNominalTime();
         if (nominalInstanceCal == null) {
             XLog.getLog(OozieELExtensions.class).warn(
                     "If the initial instance of the dataset is later than the nominal time, an empty string is returned. " +
@@ -211,7 +206,7 @@ public class OozieELExtensions {
             return "";
         }
 
-        Calendar dsInstanceCal = Calendar.getInstance(getDatasetTZ());
+        Calendar dsInstanceCal = Calendar.getInstance(CoordELFunctions.getDatasetTZ());
         dsInstanceCal.setTime(nominalInstanceCal.getTime());
 
         //truncate
@@ -240,184 +235,18 @@ public class OozieELExtensions {
         dsInstanceCal.add(Calendar.MINUTE, min);
 
         int[] instCnt = new int[1];
-        Calendar compInstCal = getCurrentInstance(dsInstanceCal.getTime(), instCnt);
+        Calendar compInstCal = CoordELFunctions.getCurrentInstance(dsInstanceCal.getTime(), instCnt);
         if(compInstCal == null) {
             return "";
         }
         int dsInstanceCnt = instCnt[0];
 
-        compInstCal = getCurrentInstance(nominalInstanceCal.getTime(), instCnt);
+        compInstCal = CoordELFunctions.getCurrentInstance(nominalInstanceCal.getTime(), instCnt);
         if(compInstCal == null) {
             return "";
         }
         int nominalInstanceCnt = instCnt[0];
 
         return COORD_CURRENT + "(" + (dsInstanceCnt - nominalInstanceCnt) + ")";
-    }
-
-    /*============================================================================
-     * NOTE:
-     * Copied from CoordELFunctions in oozie source as these are private functions
-     *============================================================================
-     */
-    final private static String DATASET = "oozie.coord.el.dataset.bean";
-    final private static String COORD_ACTION = "oozie.coord.el.app.bean";
-
-    private static int parseOneArg(String funcName) throws Exception {
-        int firstPos = funcName.indexOf("(");
-        int lastPos = funcName.lastIndexOf(")");
-        if ((firstPos >= 0) && (lastPos > firstPos)) {
-            String tmp = funcName.substring(firstPos + 1, lastPos).trim();
-            if (tmp.length() > 0) {
-                return (int) Double.parseDouble(tmp);
-            }
-        }
-        throw new RuntimeException("Unformatted function :" + funcName);
-    }
-
-    private static Calendar getEffectiveNominalTime() {
-        Date datasetInitialInstance = getInitialInstance();
-        TimeZone dsTZ = getDatasetTZ();
-        // Convert Date to Calendar for corresponding TZ
-        Calendar current = Calendar.getInstance();
-        current.setTime(datasetInitialInstance);
-        current.setTimeZone(dsTZ);
-
-        Calendar calEffectiveTime = Calendar.getInstance();
-        calEffectiveTime.setTime(getActionCreationtime());
-        calEffectiveTime.setTimeZone(dsTZ);
-        if (current.compareTo(calEffectiveTime) > 0) {
-            // Nominal Time < initial Instance
-            // TODO: getClass() call doesn't work from static method.
-            // XLog.getLog("CoordELFunction.class").warn("ACTION CREATED BEFORE INITIAL INSTACE "+
-            // current.getTime());
-            return null;
-        }
-        return calEffectiveTime;
-    }
-
-    /**
-     * @return Nominal or action creation Time when all the dependencies of an application instance are met.
-     */
-    private static Date getActionCreationtime() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordAction coordAction = (SyncCoordAction) eval.getVariable(COORD_ACTION);
-        if (coordAction == null) {
-            throw new RuntimeException("Associated Application instance should be defined with key " + COORD_ACTION);
-        }
-        return coordAction.getNominalTime();
-    }
-
-    /**
-     * Find the current instance based on effectiveTime (i.e Action_Creation_Time or Action_Start_Time)
-     *
-     * @return current instance i.e. current(0) returns null if effectiveTime is earlier than Initial Instance time of
-     *         the dataset.
-     */
-    private static Calendar getCurrentInstance(Date effectiveTime, int instanceCount[]) {
-        Date datasetInitialInstance = getInitialInstance();
-        TimeUnit dsTimeUnit = getDSTimeUnit();
-        TimeZone dsTZ = getDatasetTZ();
-        // Convert Date to Calendar for corresponding TZ
-        Calendar current = Calendar.getInstance();
-        current.setTime(datasetInitialInstance);
-        current.setTimeZone(dsTZ);
-
-        Calendar calEffectiveTime = Calendar.getInstance();
-        calEffectiveTime.setTime(effectiveTime);
-        calEffectiveTime.setTimeZone(dsTZ);
-        instanceCount[0] = 0;
-        if (current.compareTo(calEffectiveTime) > 0) {
-            // Nominal Time < initial Instance
-            // TODO: getClass() call doesn't work from static method.
-            // XLog.getLog("CoordELFunction.class").warn("ACTION CREATED BEFORE INITIAL INSTACE "+
-            // current.getTime());
-            return null;
-        }
-        Calendar origCurrent = (Calendar) current.clone();
-        while (current.compareTo(calEffectiveTime) <= 0) {
-            current = (Calendar) origCurrent.clone();
-            instanceCount[0]++;
-            current.add(dsTimeUnit.getCalendarUnit(), instanceCount[0] * getDSFrequency());
-        }
-        instanceCount[0]--;
-
-        current = (Calendar) origCurrent.clone();
-        current.add(dsTimeUnit.getCalendarUnit(), instanceCount[0] * getDSFrequency());
-        return current;
-    }
-
-    /**
-     * @return dataset TimeUnit
-     */
-    private static TimeUnit getDSTimeUnit() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(DATASET);
-        if (ds == null) {
-            throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
-        }
-        return ds.getTimeUnit();
-    }
-
-    /**
-     * @return the initial instance of a DataSet in DATE
-     */
-    private static Date getInitialInstance() {
-        return getInitialInstanceCal().getTime();
-        // return ds.getInitInstance();
-    }
-
-    /**
-     * @return the initial instance of a DataSet in Calendar
-     */
-    private static Calendar getInitialInstanceCal() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(DATASET);
-        if (ds == null) {
-            throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
-        }
-        Calendar effInitTS = Calendar.getInstance();
-        effInitTS.setTime(ds.getInitInstance());
-        effInitTS.setTimeZone(ds.getTimeZone());
-        // To adjust EOD/EOM
-        DateUtils.moveToEnd(effInitTS, getDSEndOfFlag());
-        return effInitTS;
-        // return ds.getInitInstance();
-    }
-
-    /**
-     * @return dataset frequency in minutes
-     */
-    private static int getDSFrequency() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(DATASET);
-        if (ds == null) {
-            throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
-        }
-        return ds.getFrequency();
-    }
-
-    /**
-     * @return dataset TimeUnit
-     */
-    private static TimeUnit getDSEndOfFlag() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(DATASET);
-        if (ds == null) {
-            throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
-        }
-        return ds.getEndOfDuration();// == null ? "": ds.getEndOfDuration();
-    }
-
-    /**
-     * @return dataset TimeZone
-     */
-    private static TimeZone getDatasetTZ() {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(DATASET);
-        if (ds == null) {
-            throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
-        }
-        return ds.getTimeZone();
     }
 }
