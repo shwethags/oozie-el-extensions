@@ -37,7 +37,6 @@ import org.testng.annotations.Test;
 
 public class TestOozieELExtensions {
 
-    private Services services;
     private ELEvaluator instEval;
     private ELEvaluator createEval;
     private SyncCoordAction appInst;
@@ -51,7 +50,8 @@ public class TestOozieELExtensions {
         System.setProperty(ConfigurationService.OOZIE_CONFIG_DIR, confPath);
         Services.setOozieHome();
 
-        services = new Services();
+        Services services = new Services();
+        services.getConf().set("oozie.services", "org.apache.oozie.service.ELService");
         services.init();
     }
 
