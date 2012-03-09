@@ -21,6 +21,13 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+    <distributionManagement>
+        <repository>
+            <id>InMobiRepository</id>
+            <name>InMobi Internal Repository</name>
+            <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
+        </repository>
+    </distributionManagement>
   <repositories>
     <repository>
       <id>internalRepo</id>
@@ -42,9 +49,9 @@
       <version>0.20.2-cdh3u0</version>
     </dependency>
     <dependency>
-      <groupId>com.yahoo.oozie</groupId>
+      <groupId>org.apache.oozie</groupId>
       <artifactId>oozie-core</artifactId>
-      <version>3.0.2</version>
+      <version>3.1.4</version>
     </dependency>
     <dependency>
       <groupId>org.testng</groupId>
