@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one
   or more contributor license agreements.  See the NOTICE file
@@ -16,7 +17,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
      <property>
         <name>oozie.service.ELService.ext.functions.coord-job-submit-instances</name>
@@ -27,7 +27,13 @@
            elext:currentMonth=org.apache.oozie.extensions.OozieELExtensions#ph1_currentMonth_echo,
            elext:lastMonth=org.apache.oozie.extensions.OozieELExtensions#ph1_lastMonth_echo,
            elext:currentYear=org.apache.oozie.extensions.OozieELExtensions#ph1_currentYear_echo,
-           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph1_lastYear_echo
+           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph1_lastYear_echo,
+           elext:todayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_todayWithOffset_echo,
+           elext:yesterdayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_yesterdayWithOffset_echo,
+           elext:currentMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_currentMonthWithOffset_echo,
+           elext:lastMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_lastMonthWithOffset_echo,
+           elext:currentYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_currentYearWithOffset_echo,
+           elext:lastYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph1_lastYearWithOffset_echo
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
@@ -44,7 +50,13 @@
            elext:yesterday=org.apache.oozie.extensions.OozieELExtensions#ph2_yesterday_inst,
            elext:lastMonth=org.apache.oozie.extensions.OozieELExtensions#ph2_lastMonth_inst,
            elext:currentYear=org.apache.oozie.extensions.OozieELExtensions#ph2_currentYear_inst,
-           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYear_inst
+           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYear_inst,
+           elext:todayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_todayWithOffset_inst,
+           elext:yesterdayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_yesterdayWithOffset_inst,
+           elext:currentMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_currentMonthWithOffset_inst,
+           elext:lastMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_lastMonthWithOffset_inst,
+           elext:currentYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_currentYearWithOffset_inst,
+           elext:lastYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYearWithOffset_inst
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
@@ -59,9 +71,16 @@
            elext:now=org.apache.oozie.extensions.OozieELExtensions#ph2_now,
            elext:today=org.apache.oozie.extensions.OozieELExtensions#ph2_today,
            elext:yesterday=org.apache.oozie.extensions.OozieELExtensions#ph2_yesterday,
+           elext:currentMonth=org.apache.oozie.extensions.OozieELExtensions#ph2_currentMonth,
            elext:lastMonth=org.apache.oozie.extensions.OozieELExtensions#ph2_lastMonth,
            elext:currentYear=org.apache.oozie.extensions.OozieELExtensions#ph2_currentYear,
-           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYear
+           elext:lastYear=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYear,
+           elext:todayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_todayWithOffset,
+           elext:yesterdayWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_yesterdayWithOffset,
+           elext:currentMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_currentMonthWithOffset,
+           elext:lastMonthWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_lastMonthWithOffset,
+           elext:currentYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_currentYearWithOffset,
+           elext:lastYearWithOffset=org.apache.oozie.extensions.OozieELExtensions#ph2_lastYearWithOffset
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
