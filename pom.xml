@@ -24,9 +24,9 @@
   </properties>
     <distributionManagement>
         <repository>
-            <id>internal.maven.repo</id>
-            <name>Internal Repository for Integration</name>
-            <url>${internal.maven.repository}</url>
+            <id>InMobiRepository</id>
+            <name>InMobi Internal Repository</name>
+            <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
         </repository>
     </distributionManagement>
   <repositories>
