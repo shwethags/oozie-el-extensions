@@ -1,0 +1,13 @@
+Extension of oozie's expression language to support more functions in input/output instance definition:
+
+Oozie coordinator supports coord:current to specify start and end instances for input datasets. coord:current is always resolved wrt job's nominal time. If we change the job start time, we also have to change start and end instances of inputs/outputs. Else, it will pick up wrong values. So, the following functions are added to oozie's EL:
+1. now(hr, min) - Adds hr and min to current nominal time
+2. today(hr, min) - Adds hr and min to start day of nominal time
+3. yesterday(hr, min) - Adds hr and min to start of previous day of nominal time
+4. currentMonth(day, hr, min) - Adds day, hr, min to start month of nominal time
+5. lastMonth(day, hr, min) - Adds day, hr and min to start of previous month of nominal time
+6. currentYear(month, day, hr, min) - Adds month, day, hr, and min to start year of nominal time
+7. lastYear(month, day, hr, min) - Adds month, day, hr and min to start of previous year of nominal time
+
+For example, if the job is running at 5th hour of the day and hourly input should be all of previous day and first 2 hrs of today, input can be defined as:
+start - yesterday(0, 0); end - today(2, 0)
