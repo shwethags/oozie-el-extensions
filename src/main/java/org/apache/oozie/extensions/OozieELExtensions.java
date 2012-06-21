@@ -18,13 +18,17 @@
 
 package org.apache.oozie.extensions;
 
+import java.util.Calendar;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.oozie.command.coord.CoordCommandUtils;
 import org.apache.oozie.coord.CoordELFunctions;
+import org.apache.oozie.coord.SyncCoordAction;
+import org.apache.oozie.coord.SyncCoordDataset;
+import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.ELEvaluator;
+import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
-
-import java.util.Calendar;
 
 public class OozieELExtensions {
 
@@ -44,7 +48,6 @@ public class OozieELExtensions {
         return "dataIn('" + dataInName + "', '" + part + "')";
     }
 
-
     public static String ph3_dataIn(String dataInName, String part) {
         ELEvaluator eval = ELEvaluator.getCurrent();
         String uristr = (String) eval.getVariable(".datain." + dataInName);
@@ -52,26 +55,26 @@ public class OozieELExtensions {
         if (unresolved != null && unresolved) {
             throw new RuntimeException("There are unresolved instances in " + uristr);
         }
-        
-        if(StringUtils.isNotEmpty(uristr) && StringUtils.isNotEmpty(part)) {
+
+        if (StringUtils.isNotEmpty(uristr) && StringUtils.isNotEmpty(part) && !part.equals("null")) {
             String[] uris = uristr.split(",");
             StringBuilder mappedUris = new StringBuilder();
-            for(String uri:uris) {
-                if(uri.trim().length() == 0)
+            for (String uri : uris) {
+                if (uri.trim().length() == 0)
                     continue;
-                if(mappedUris.length() > 0)
+                if (mappedUris.length() > 0)
                     mappedUris.append(",");
                 mappedUris.append(uri).append("/").append(part);
             }
-             return mappedUris.toString();
+            return mappedUris.toString();
         }
         return uristr;
     }
-    
+
     public static String ph1_now_echo(int hr, int min) {
         ELEvaluator eval = ELEvaluator.getCurrent();
         eval.setVariable(".wrap", "true");
-        return "now("+ hr + "," + min + ")"; // Unresolved
+        return "now(" + hr + "," + min + ")"; // Unresolved
     }
 
     public static String ph1_today_echo(int hr, int min) {
@@ -110,36 +113,36 @@ public class OozieELExtensions {
         return "lastYear(" + month + ", " + day + ", " + hr + ", " + min + ")"; // Unresolved
     }
 
-    public static String ph2_now_inst(int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.NONE, 0, 0, 0, hr, min, 0);
+    public static String ph2_now_inst(int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.NONE, 0, 0, 0, hr, min);
     }
 
-    public static String ph2_today_inst(int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.DAY, 0, 0, 0, hr, min, 0);
+    public static String ph2_today_inst(int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.DAY, 0, 0, 0, hr, min);
     }
 
-    public static String ph2_yesterday_inst(int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.DAY, 0, 0, -1, hr, min, 0);
+    public static String ph2_yesterday_inst(int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.DAY, 0, 0, -1, hr, min);
     }
 
-    public static String ph2_currentMonth_inst(int day, int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.MONTH, 0, 0, day, hr, min, 0);
+    public static String ph2_currentMonth_inst(int day, int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.MONTH, 0, 0, day, hr, min);
     }
 
-    public static String ph2_lastMonth_inst(int day, int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.MONTH, 0, -1, day, hr, min, 0);
+    public static String ph2_lastMonth_inst(int day, int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.MONTH, 0, -1, day, hr, min);
     }
 
-    public static String ph2_currentYear_inst(int month, int day, int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.YEAR, 0, month, day, hr, min, 0);
+    public static String ph2_currentYear_inst(int month, int day, int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.YEAR, 0, month, day, hr, min);
     }
 
-    public static String ph2_lastYear_inst(int month, int day, int hr, int min) throws Exception {
-        return mapToCurrentInstance(TruncateBoundary.YEAR, -1, month, day, hr, min, 0);
+    public static String ph2_lastYear_inst(int month, int day, int hr, int min) {
+        return mapToCurrentInstance(TruncateBoundary.YEAR, -1, month, day, hr, min);
     }
 
     private static String evaluateCurrent(String curExpr) throws Exception {
-        if(curExpr.equals("")) {
+        if (curExpr.equals("")) {
             return curExpr;
         }
 
@@ -148,103 +151,163 @@ public class OozieELExtensions {
     }
 
     public static String ph2_now(int hr, int min) throws Exception {
-        String inst = ph2_now_inst(hr, min);
-        return evaluateCurrent(inst);
+        if (isDatasetContext()) {
+            String inst = ph2_now_inst(hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.NONE, 0, 0, 0, hr, min);
     }
 
-    public static String ph2_today(int hr, int min) throws Exception {
-        String inst = ph2_today_inst(hr, min);
-        return evaluateCurrent(inst);
+    private static boolean isActionContext() {
+        return !isDatasetContext();
     }
 
-    public static String ph2_yesterday(int hr, int min) throws Exception {
-        String inst = ph2_yesterday_inst(hr, min);
-        return evaluateCurrent(inst);
+    private static boolean isDatasetContext() {
+        ELEvaluator eval = ELEvaluator.getCurrent();
+        SyncCoordDataset ds = (SyncCoordDataset) eval.getVariable(CoordELFunctions.DATASET);
+        if (ds != null)
+            return true;
+        return false;
     }
 
-    public static String ph2_currentMonth(int day, int hr, int min) throws Exception {
-        String inst = ph2_currentMonth_inst(day, hr, min);
-        return evaluateCurrent(inst);
+    private static String getEffectiveTimeStr(TruncateBoundary trunc, int yr, int mon, int day, int hr, int min) throws Exception {
+        Calendar time = getEffectiveTime(trunc, yr, mon, day, hr, min);
+        return DateUtils.formatDateUTC(time);
     }
 
-    public static String ph2_lastMonth(int day, int hr, int min) throws Exception {
-        String inst = ph2_lastMonth_inst(day, hr, min);
-        return evaluateCurrent(inst);
-    }
-
-    public static String ph2_currentYear(int month, int day, int hr, int min) throws Exception {
-        String inst = ph2_currentYear_inst(month, day, hr, min);
-        return evaluateCurrent(inst);
-    }
-
-    public static String ph2_lastYear(int month, int day, int hr, int min) throws Exception {
-        String inst = ph2_lastYear_inst(month, day, hr, min);
-        return evaluateCurrent(inst);
-    }
-
-    /**
-     * Maps the dataset time to coord:current(n) with respect to action's nominal time
-     * dataset time = truncate(nominal time) + yr + day + month + hr + min
-     * @param trunc : Truncate resolution
-     * @param yr : Year to add (can be -ve)
-     * @param month : month to add (can be -ve)
-     * @param day : day to add (can be -ve)
-     * @param hr : hr to add (can be -ve)
-     * @param min : min to add (can be -ve)
-     * @param offsetMinutes - minutes to offset from nominal time
-     * @return coord:current(n)
-     * @throws Exception : If encountered an exception while evaluating
-     */
-    //TODO handle the case where action_Creation_time or the n-th instance is earlier than the Initial_Instance of dataset.
-    private static String mapToCurrentInstance(TruncateBoundary trunc, int yr, int month,
-                                               int day, int hr, int min, int offsetMinutes) throws Exception {
-        Calendar nominalInstanceCal = CoordELFunctions.getEffectiveNominalTime();
-        if (nominalInstanceCal == null) {
-            XLog.getLog(OozieELExtensions.class).warn(
-                    "If the initial instance of the dataset is later than the nominal time, an empty string is returned. " +
-                            "This means that no data is available at the current-instance specified by the user " +
-                    "and the user could try modifying his initial-instance to an earlier time.");
-            return "";
+    private static Calendar getEffectiveTime(TruncateBoundary trunc, int yr, int mon, int day, int hr, int min) {
+        Calendar cal;
+        if (isActionContext()) {
+            ELEvaluator eval = ELEvaluator.getCurrent();
+            SyncCoordAction action = ParamChecker.notNull((SyncCoordAction) eval.getVariable(CoordELFunctions.COORD_ACTION),
+                    "Coordinator Action");
+            cal = Calendar.getInstance(action.getTimeZone());
+            cal.setTime(action.getNominalTime());
+        } else {
+            cal = CoordELFunctions.getEffectiveNominalTime();
+            if (cal == null)
+                return null;
         }
 
-        Calendar dsInstanceCal = Calendar.getInstance(CoordELFunctions.getDatasetTZ());
-        dsInstanceCal.setTime(nominalInstanceCal.getTime());
-        dsInstanceCal.add(Calendar.MINUTE, offsetMinutes);
-
-        //truncate
+        // truncate
         switch (trunc) {
             case YEAR:
-                dsInstanceCal.set(Calendar.MONTH, 0);
+                cal.set(Calendar.MONTH, 0);
             case MONTH:
-                dsInstanceCal.set(Calendar.DAY_OF_MONTH, 1);
+                cal.set(Calendar.DAY_OF_MONTH, 1);
             case DAY:
-                dsInstanceCal.set(Calendar.HOUR_OF_DAY, 0);
-                dsInstanceCal.set(Calendar.MINUTE, 0);
-                dsInstanceCal.set(Calendar.SECOND, 0);
-                dsInstanceCal.set(Calendar.MILLISECOND, 0);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
                 break;
-            case NONE:    //don't truncate
+            case NONE: // don't truncate
                 break;
             default:
                 throw new IllegalArgumentException("Truncation boundary " + trunc + " is not supported");
         }
 
-        //add
-        dsInstanceCal.add(Calendar.YEAR, yr);
-        dsInstanceCal.add(Calendar.MONTH, month);
-        dsInstanceCal.add(Calendar.DAY_OF_MONTH, day);
-        dsInstanceCal.add(Calendar.HOUR_OF_DAY, hr);
-        dsInstanceCal.add(Calendar.MINUTE, min);
+        // add
+        cal.add(Calendar.YEAR, yr);
+        cal.add(Calendar.MONTH, mon);
+        cal.add(Calendar.DAY_OF_MONTH, day);
+        cal.add(Calendar.HOUR_OF_DAY, hr);
+        cal.add(Calendar.MINUTE, min);
+        return cal;
+    }
+
+    public static String ph2_today(int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_today_inst(hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.DAY, 0, 0, 0, hr, min);
+    }
+
+    public static String ph2_yesterday(int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_yesterday_inst(hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.DAY, 0, 0, -1, hr, min);
+    }
+
+    public static String ph2_currentMonth(int day, int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_currentMonth_inst(day, hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.MONTH, 0, 0, day, hr, min);
+    }
+
+    public static String ph2_lastMonth(int day, int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_lastMonth_inst(day, hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.MONTH, 0, -1, day, hr, min);
+    }
+
+    public static String ph2_currentYear(int month, int day, int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_currentYear_inst(month, day, hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.YEAR, 0, month, day, hr, min);
+    }
+
+    public static String ph2_lastYear(int month, int day, int hr, int min) throws Exception {
+        if (isDatasetContext()) {
+            String inst = ph2_lastYear_inst(month, day, hr, min);
+            return evaluateCurrent(inst);
+        } else
+            return getEffectiveTimeStr(TruncateBoundary.YEAR, -1, month, day, hr, min);
+    }
+
+    /**
+     * Maps the dataset time to coord:current(n) with respect to action's
+     * nominal time dataset time = truncate(nominal time) + yr + day + month +
+     * hr + min
+     * 
+     * @param trunc
+     *            : Truncate resolution
+     * @param yr
+     *            : Year to add (can be -ve)
+     * @param month
+     *            : month to add (can be -ve)
+     * @param day
+     *            : day to add (can be -ve)
+     * @param hr
+     *            : hr to add (can be -ve)
+     * @param min
+     *            : min to add (can be -ve)
+     * @param offsetMinutes
+     *            - minutes to offset from nominal time
+     * @return coord:current(n)
+     * @throws Exception
+     *             : If encountered an exception while evaluating
+     */
+    private static String mapToCurrentInstance(TruncateBoundary trunc, int yr, int mon, int day, int hr, int min) {
+        Calendar nominalInstanceCal = CoordELFunctions.getEffectiveNominalTime();
+        if (nominalInstanceCal == null) {
+            XLog.getLog(OozieELExtensions.class).warn(
+                    "If the initial instance of the dataset is later than the nominal time, an empty string is returned. "
+                            + "This means that no data is available at the current-instance specified by the user "
+                            + "and the user could try modifying his initial-instance to an earlier time.");
+            return "";
+        }
+
+        Calendar dsInstanceCal = getEffectiveTime(trunc, yr, mon, day, hr, min);
 
         int[] instCnt = new int[1];
         Calendar compInstCal = CoordELFunctions.getCurrentInstance(dsInstanceCal.getTime(), instCnt);
-        if(compInstCal == null) {
+        if (compInstCal == null) {
             return "";
         }
         int dsInstanceCnt = instCnt[0];
 
         compInstCal = CoordELFunctions.getCurrentInstance(nominalInstanceCal.getTime(), instCnt);
-        if(compInstCal == null) {
+        if (compInstCal == null) {
             return "";
         }
         int nominalInstanceCnt = instCnt[0];

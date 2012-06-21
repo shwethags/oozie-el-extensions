@@ -18,21 +18,19 @@
   <version>0.1-SNAPSHOT</version>
   <name>Oozie Coordinator EL extensions</name>
   <url>https://github.com/shwethags/oozie-el-extensions</url>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <internal.maven.repository>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</internal.maven.repository>
-  </properties>
-    <distributionManagement>
+    
+   <distributionManagement>
         <repository>
             <id>InMobiRepository</id>
             <name>InMobi Internal Repository</name>
             <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
         </repository>
     </distributionManagement>
+
   <repositories>
     <repository>
       <id>internal.repo</id>
-      <url>${internal.maven.repository}</url>
+      <url>http://build.corp.inmobi.com/nexus/content/repositories/releases</url>
     </repository>
     <repository>
       <id>cdh.repo</id>
@@ -52,7 +50,7 @@
     <dependency>
       <groupId>org.apache.oozie</groupId>
       <artifactId>oozie-core</artifactId>
-      <version>3.1.3-SNAPSHOT</version>
+      <version>3.1.6</version>
     </dependency>
     <dependency>
       <groupId>org.testng</groupId>

@@ -60,6 +60,31 @@ public class TestOozieELExtensions {
     }
 
     @Test
+    public void testActionExpressions() throws Exception {
+        ELEvaluator eval = createActionStartEvaluator();
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${now(0, 0)}"), "2009-09-02T10:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${now(1, 0)}"), "2009-09-02T11:00Z");
+        
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${today(0, 0)}"), "2009-09-02T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${today(-1, 0)}"), "2009-09-01T23:00Z");
+
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${yesterday(0, 0)}"), "2009-09-01T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${yesterday(0, 60)}"), "2009-09-01T01:00Z");
+        
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${currentMonth(0, 0, 0)}"), "2009-09-01T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${currentMonth(-1, 0, 0)}"), "2009-08-31T00:00Z");
+        
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastMonth(0, 0, 0)}"), "2009-08-01T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastMonth(0, 1, 0)}"), "2009-08-01T01:00Z");
+
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${currentYear(0, 0, 0, 0)}"), "2009-01-01T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${currentYear(0, -1, 0, 0)}"), "2008-12-31T00:00Z");
+        
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastYear(0, 0, 0, 0)}"), "2008-01-01T00:00Z");
+        Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastYear(1, 0, 0, 0)}"), "2008-02-01T00:00Z");
+    }
+    
+    @Test
     public void testIntstanceTime() throws Exception {        
         ELEvaluator eval = createActionStartEvaluator();
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${instanceTime()}"), "2009-09-02T10:00Z");
@@ -236,10 +261,9 @@ public class TestOozieELExtensions {
     }
     
     private ELEvaluator createActionStartEvaluator() throws Exception {
-        SyncCoordDataset ds = createDataSet("2007-09-30T010:00Z");
         SyncCoordAction appInst = createCoordAction("2009-09-02T11:30Z", "2009-09-02T10:00Z");
         ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("coord-action-start");
-        CoordELFunctions.configureEvaluator(eval, ds, appInst);
+        CoordELFunctions.configureEvaluator(eval, null, appInst);
         return eval;
     }
 }
