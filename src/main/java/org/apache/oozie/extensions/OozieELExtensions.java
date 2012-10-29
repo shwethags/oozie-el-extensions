@@ -21,7 +21,9 @@ package org.apache.oozie.extensions;
 import java.util.Calendar;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.command.coord.CoordCommandUtils;
+import org.apache.oozie.coord.CoordELEvaluator;
 import org.apache.oozie.coord.CoordELFunctions;
 import org.apache.oozie.coord.SyncCoordAction;
 import org.apache.oozie.coord.SyncCoordDataset;
@@ -29,6 +31,9 @@ import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.ELEvaluator;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
+import org.jdom.Attribute;
+import org.jdom.Element;
+import org.jdom.Text;
 
 public class OozieELExtensions {
 
@@ -39,21 +44,30 @@ public class OozieELExtensions {
     public static final String COORD_CURRENT = "coord:current";
 
     public static String ph1_dataIn_echo(String dataInName, String part) {
-        ELEvaluator eval = ELEvaluator.getCurrent();
-        String val = (String) eval.getVariable("oozie.dataname." + dataInName);
-        if (val == null || !val.equals("data-in")) {
-            XLog.getLog(CoordELFunctions.class).error("data_in_name " + dataInName + " is not valid");
-            throw new RuntimeException("data_in_name " + dataInName + " is not valid");
-        }
         return "dataIn('" + dataInName + "', '" + part + "')";
     }
 
     public static String ph3_dataIn(String dataInName, String part) {
         ELEvaluator eval = ELEvaluator.getCurrent();
         String uristr = (String) eval.getVariable(".datain." + dataInName);
-        Boolean unresolved = (Boolean) eval.getVariable(".datain." + dataInName + ".unresolved");
-        if (unresolved != null && unresolved) {
-            throw new RuntimeException("There are unresolved instances in " + uristr);
+        if(uristr == null) {    //optional input
+            Element dsEle = getDSElement(eval, dataInName);
+            Configuration conf = new Configuration();
+            SyncCoordAction appInst = (SyncCoordAction) eval.getVariable(CoordELFunctions.COORD_ACTION);
+            try {
+                ELEvaluator instEval = CoordELEvaluator.createInstancesELEvaluator(dsEle, appInst, conf);
+                StringBuilder instances = new StringBuilder();
+                CoordCommandUtils.resolveInstanceRange(dsEle, instances , appInst, conf, instEval);
+                uristr = CoordCommandUtils.createEarlyURIs(dsEle, instances.toString(), new StringBuilder(), new StringBuilder());
+                uristr = uristr.replace(CoordELFunctions.INSTANCE_SEPARATOR, ",");
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to resolve instance range for " + dataInName, e);
+            }
+        } else {
+            Boolean unresolved = (Boolean) eval.getVariable(".datain." + dataInName + ".unresolved");
+            if (unresolved != null && unresolved) {
+                throw new RuntimeException("There are unresolved instances in " + uristr);
+            }
         }
 
         if (StringUtils.isNotEmpty(uristr) && StringUtils.isNotEmpty(part) && !part.equals("null")) {
@@ -69,6 +83,32 @@ public class OozieELExtensions {
             return mappedUris.toString();
         }
         return uristr;
+    }
+
+    private static Element getDSElement(ELEvaluator eval, String dataInName) {
+        Element ele = new Element("datain");
+        Element dsEle = new Element("dataset");
+        ele.getChildren().add(dsEle);
+        
+        String[] attrs = {"initial-instance", "frequency", "freq_timeunit", "timezone", "end_of_duration"};
+        for(String attr:attrs)
+            dsEle.getAttributes().add(new Attribute(attr, (String) eval.getVariable(dataInName + "." + attr)));
+        
+        String[] children = {"done-flag", "uri-template"};
+        for(String child:children) {
+            Element childEle = new Element(child);
+            childEle.setContent(new Text(((String) eval.getVariable(dataInName + "." + child)).replace('%', '$')));
+            dsEle.getChildren().add(childEle);
+        }
+        
+        String[] eleChildren = {"start-instance", "end-instance"};
+        for(String child:eleChildren) {
+            Element childEle = new Element(child);
+            childEle.setContent(new Text("${" + ((String) eval.getVariable(dataInName + "." + child)) + "}"));
+            ele.getChildren().add(childEle);
+        }
+        
+        return ele;
     }
 
     public static String ph1_now_echo(int hr, int min) {

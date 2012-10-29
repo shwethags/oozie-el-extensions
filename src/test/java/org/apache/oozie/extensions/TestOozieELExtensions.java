@@ -20,6 +20,7 @@ package org.apache.oozie.extensions;
 
 import java.io.File;
 
+import org.apache.oozie.client.CoordinatorJob.Timeunit;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.coord.CoordELFunctions;
 import org.apache.oozie.coord.SyncCoordAction;
@@ -82,23 +83,11 @@ public class TestOozieELExtensions {
         
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastYear(0, 0, 0, 0)}"), "2008-01-01T00:00Z");
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${lastYear(1, 0, 0, 0)}"), "2008-02-01T00:00Z");
-    }
-    
-    @Test
-    public void testIntstanceTime() throws Exception {        
-        ELEvaluator eval = createActionStartEvaluator();
+
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${instanceTime()}"), "2009-09-02T10:00Z");
-    }
-    
-    @Test
-    public void testDateOffset() throws Exception {
-        ELEvaluator eval = createActionStartEvaluator();
+        
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${dateOffset(instanceTime(), 1, 'DAY')}"), "2009-09-03T10:00Z");        
-    }
-    
-    @Test
-    public void testFormatTime() throws Exception {
-        ELEvaluator eval = createActionStartEvaluator();
+        
         Assert.assertEquals(CoordELFunctions.evalAndWrap(eval, "${formatTime(instanceTime(), 'yyyy-MMM-dd')}"), "2009-Sep-02");                
     }
     
@@ -112,10 +101,25 @@ public class TestOozieELExtensions {
     
     @Test
     public void testDataIn() throws Exception {
-        ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("coord-action-start"); 
-        String uris = "hdfs://localhost:8020/clicks/2010/01/01/00,hdfs://localhost:8020/clicks/2010/01/01/01";
-        eval.setVariable(".datain.clicks", uris );
-        String expuris = "hdfs://localhost:8020/clicks/2010/01/01/00/*/US,hdfs://localhost:8020/clicks/2010/01/01/01/*/US";
+        ELEvaluator eval = createActionStartEvaluator();
+        String uris = "hdfs://localhost:8020/clicks/2009/09/02/10,hdfs://localhost:8020/clicks/2009/09/02/09";
+        eval.setVariable(".datain.clicks", uris);
+        String expuris = "hdfs://localhost:8020/clicks/2009/09/02/10/*/US,hdfs://localhost:8020/clicks/2009/09/02/09/*/US";
+        Assert.assertEquals(expuris, CoordELFunctions.evalAndWrap(eval, "${dataIn('clicks', '*/US')}"));
+
+        //test optional input
+        String inName = "clicks";
+        SyncCoordDataset ds = createDataSet("2007-09-30T010:00Z");
+        eval.setVariable(inName + ".frequency", String.valueOf(ds.getFrequency()));
+        eval.setVariable(inName + ".freq_timeunit", ds.getTimeUnit().name());
+        eval.setVariable(inName + ".timezone", ds.getTimeZone().getID());
+        eval.setVariable(inName + ".end_of_duration", Timeunit.NONE.name());
+        eval.setVariable(inName + ".initial-instance", DateUtils.formatDateUTC(ds.getInitInstance()));
+        eval.setVariable(inName + ".done-flag", "notused");
+        eval.setVariable(inName + ".uri-template", ds.getUriTemplate());
+        eval.setVariable(inName + ".start-instance", "now(-1,0)");
+        eval.setVariable(inName + ".end-instance", "now(0,0)");
+        eval.setVariable(".datain.clicks", null);
         Assert.assertEquals(expuris, CoordELFunctions.evalAndWrap(eval, "${dataIn('clicks', '*/US')}"));
     }
     
@@ -236,7 +240,7 @@ public class TestOozieELExtensions {
         ds.setTimeUnit(TimeUnit.HOUR);
         ds.setTimeZone(DateUtils.getTimeZone("UTC"));
         ds.setName("test");
-        ds.setUriTemplate("hdfs://localhost:9000/user/test_user/US/${YEAR}/${MONTH}/${DAY}");
+        ds.setUriTemplate("hdfs://localhost:8020/clicks/${YEAR}/${MONTH}/${DAY}/${HOUR}");
         ds.setType("SYNC");
         ds.setDoneFlag("");
         return ds;
