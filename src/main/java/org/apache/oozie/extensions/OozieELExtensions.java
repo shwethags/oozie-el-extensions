@@ -224,9 +224,11 @@ public class OozieELExtensions {
             cal = Calendar.getInstance(action.getTimeZone());
             cal.setTime(action.getNominalTime());
         } else {
-            cal = CoordELFunctions.getEffectiveNominalTime();
-            if (cal == null)
+            Calendar tmp = CoordELFunctions.getEffectiveNominalTime();
+            if (tmp == null)
                 return null;
+            cal = Calendar.getInstance(CoordELFunctions.getDatasetTZ());
+            cal.setTimeInMillis(tmp.getTimeInMillis());
         }
 
         // truncate
